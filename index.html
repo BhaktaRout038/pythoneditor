@@ -2,30 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Python Editor</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.min.css" />
+  <title>Python 3 Editor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material.min.css">
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: sans-serif;
       height: 100vh;
       display: flex;
       flex-direction: column;
-      background: #f0f2f5;
+      background: #1e1e1e;
+      color: white;
     }
 
-    h1 {
-      margin: 16px;
+    header {
+      padding: 1rem;
+      background: #333;
       font-size: 1.5rem;
+      text-align: center;
     }
 
     main {
       flex: 1;
       display: flex;
       flex-direction: row;
-      gap: 10px;
-      padding: 0 16px 16px 16px;
-      box-sizing: border-box;
+      padding: 1rem;
+      gap: 1rem;
     }
 
     #editorContainer, #outputContainer {
@@ -34,46 +38,33 @@
       flex-direction: column;
     }
 
-    #editor {
-      flex: 1;
-    }
-
     .CodeMirror {
-      height: 100%;
+      flex: 1;
       font-size: 16px;
-      border: 1px solid #ccc;
-    }
-
-    .line-error-highlight {
-      background: #ff5252 !important;
-      color: white;
+      border: 1px solid #444;
     }
 
     #output {
       flex: 1;
-      overflow-y: auto;
+      background: #000;
       padding: 10px;
-      border: 1px solid #333;
-      background: #1e1e1e;
-      color: #0f0;
+      overflow-y: auto;
       font-family: monospace;
       font-size: 14px;
+      border: 1px solid #444;
+      white-space: pre-wrap;
+      color: #0f0;
     }
 
     button {
-      background: #007acc;
+      background: #4CAF50;
       color: white;
       border: none;
-      padding: 10px 16px;
+      padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
       margin-top: 10px;
-      border-radius: 4px;
-      align-self: flex-start;
-    }
-
-    button:hover {
-      background: #005a9e;
+      border-radius: 5px;
     }
 
     @media (max-width: 768px) {
@@ -85,80 +76,87 @@
 </head>
 <body>
 
-  <h1>🧪 Python Code Editor</h1>
+  <header>🐍 Python 3 Editor (Pyodide)</header>
 
   <main>
     <div id="editorContainer">
-      <textarea id="editor"></textarea>
+      <textarea id="editor">
+print("Hello, World!")
+
+x = "Python"
+y = "is"
+z = "awesome"
+print(x, y, z)
+      </textarea>
       <button onclick="runCode()">Run Python</button>
     </div>
     <div id="outputContainer">
-      <div id="output">Output will appear here...</div>
+      <div id="output">Loading Python...</div>
     </div>
   </main>
 
   <!-- CodeMirror -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/mode/python/python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/addon/edit/matchbrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
 
-  <!-- Skulpt from working CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@s524797336/skulpt@1.0.3/skulpt.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@s524797336/skulpt@1.0.3/skulpt-stdlib.js"></script>
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 
   <script>
+    let pyodide;
+    const output = document.getElementById("output");
+
     const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-      mode: { name: "python", version: 3, singleLineStringErrors: false },
+      mode: "python",
+      theme: "material",
       lineNumbers: true,
       indentUnit: 4,
-      matchBrackets: true,
-      autoCloseBrackets: true,
-      theme: "default"
+      tabSize: 4
     });
 
-    editor.setValue(`# Python Sample Code
-def greet(name):
-    print("Hello", name)
-
-greet("World")`);
-
-    const outputDiv = document.getElementById("output");
-
-    function outf(text) {
-      outputDiv.innerText += text;
+    async function loadPyodideAndPackages() {
+      output.innerText = "Loading Pyodide...";
+      pyodide = await loadPyodide();
+      output.innerText = "Python 3 ready. Click 'Run Python'.";
     }
 
-    function runCode() {
-      outputDiv.innerText = "";
-      editor.getAllMarks().forEach(mark => mark.clear());
+    loadPyodideAndPackages();
 
-      Sk.configure({
-        output: outf,
-        read: function (x) {
-          if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
-            throw "File not found: '" + x + "'";
-          return Sk.builtinFiles["files"][x];
-        }
-      });
-
+    async function runCode() {
       const code = editor.getValue();
+      output.innerText = ""; // clear previous output
 
-      Sk.misceval.asyncToPromise(() =>
-        Sk.importMainWithBody("<stdin>", false, code, true)
-      ).catch(err => {
-        outputDiv.innerText = err.toString();
+      try {
+        // Redirect stdout and stderr
+        let stdout = "";
+        let stderr = "";
 
-        const lineMatch = err.toString().match(/on line (\d+)/i);
-        if (lineMatch && lineMatch[1]) {
-          const lineNum = parseInt(lineMatch[1]) - 1;
-          editor.markText(
-            { line: lineNum, ch: 0 },
-            { line: lineNum, ch: code.split('\n')[lineNum].length },
-            { className: "line-error-highlight" }
-          );
-        }
-      });
+        await pyodide.runPythonAsync(`
+import sys
+from js import console
+
+class StdoutCatcher:
+    def __init__(self):
+        self.data = ""
+    def write(self, s):
+        self.data += s
+    def flush(self):
+        pass
+
+sys.stdout = StdoutCatcher()
+sys.stderr = StdoutCatcher()
+`);
+
+        await pyodide.runPythonAsync(code);
+
+        stdout = pyodide.runPython("sys.stdout.data");
+        stderr = pyodide.runPython("sys.stderr.data");
+
+        if (stdout.trim()) output.innerText += stdout;
+        if (stderr.trim()) output.innerText += "\\n❌ Error:\\n" + stderr;
+      } catch (err) {
+        output.innerText += "❌ Exception:\n" + err;
+      }
     }
   </script>
 </body>
